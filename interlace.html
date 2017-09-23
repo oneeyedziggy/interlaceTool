@@ -1,0 +1,174 @@
+<html>
+  <head>
+	<title>interlace tool</title>
+    <script id="interlaceCode" src="interlace.js"></script>
+  </head>
+  <center>    
+    <div id="inputContainer">
+
+    </div>
+    <br>
+	
+    <input type="button" id="removeAllBoxesButton" name="removeAllBoxesButton" value=" reset " onclick="ns.removeAllBoxes('in')" >
+    <br>
+    ^
+    <input type="button" id="removeBoxButton" name="removeBoxButton" value=" - " onclick="ns.removeBox('in')" >
+    <input type="textbox" id="xWayin" name="xWayin" value="0" onkeyup="ns.setXWay('in')" >
+    <input type="button" id="addBoxButton" name="addBoxButton" value=" + " onclick="ns.addBox('in')" >
+    ^
+    <br>
+    <br>
+    <input type="button" id="interlace" name="interlace" value=" v interlace v " onclick="ns.doInterlace()" >
+    <input type="button" id="deinterlace" name="deinterlace" value=" ^ deinterlace ^ " onclick="ns.doDeInterlace()" >
+	
+	<br>
+    <br>
+    v
+    <input type="button" id="removeBoxButton" name="removeBoxButton" value=" - " onclick="ns.removeBox('out')" >
+    <input type="textbox" id="xWayout" name="xWayout" value="0" onkeyup="ns.setXWay('out')" >
+    <input type="button" id="addBoxButton" name="addBoxButton" value=" + " onclick="ns.addBox('out')" >
+    v
+    <br>
+    <input type="button" id="removeAllBoxesButton" name="removeAllBoxesButton" value=" reset " onclick="ns.removeAllBoxes('out')" >
+    
+	<br>
+	<br>
+    <div id="outputContainer">
+
+    </div>
+  </center>
+  <script>
+    (function(){
+      window.ns = window.ns || {};
+      ns.inputBoxes = [];
+      ns.outputBoxes = [];
+      ns.inputBoxCount = 0; 
+      ns.outputBoxCount = 0; 
+			
+			ns.doInterlace = function(n) {
+				var stringArr = [], numInputs = ns.inputBoxes.length, i, newList;
+
+				for( i = 0; i < numInputs; i++ ){
+					stringArr.push( ns.inputBoxes[ i ].value );
+					ns.inputBoxes[ i ].value = "";
+				}
+
+				newList = ns.interlace( stringArr );
+				ns.outputBoxes[0].value = newList;
+			}
+
+			ns.doDeInterlace = function(n) {
+				var numOutputs = ns.inputBoxes.length,
+					input = ns.outputBoxes[0].value,
+					newLists, i;
+				
+				ns.outputBoxes[0].value = "";
+
+				newLists = ns.deInterlace( input, numOutputs );
+				for( i = 0; i < numOutputs; i++ ){
+					ns.inputBoxes[ i ].value = newLists[ i ];
+				}
+			}
+			
+			var isNumeric = function(n) {
+					return !isNaN( parseFloat( n ) ) && isFinite( n );
+			}
+	  
+      ns.incrementBoxCount = function( elemType ){
+        var newBox = document.getElementById( "xWay" + elemType );
+        ns[ elemType + "putBoxCount" ]++;
+        newBox.value = ns[ elemType + "putBoxCount" ].toString();
+      };
+
+      ns.decrementBoxCount = function( elemType ){
+        var newBox = document.getElementById( "xWay" + elemType );
+        ns[ elemType + "putBoxCount" ]--;
+        newBox.value = ns[ elemType + "putBoxCount" ].toString();        
+      };
+
+      ns.createBox = function( elemType ){
+        var newBox = document.createElement( "textarea" );
+        ns.incrementBoxCount( elemType );
+        newBox.id = "boxNumber" + ns[ elemType + "putBoxCount" ];
+        newBox.rows = 10;
+        ns[ elemType + "putBoxes" ].push( newBox );
+        return newBox
+      };
+
+      ns.addBox = function( elemType ){
+		if( elemType === "out" && ns[ elemType + "putBoxCount" ] > 0 ){
+			return false;
+		}
+        var inputContainerElem = document.getElementById( elemType + "putContainer" ),
+          newBox = ns.createBox( elemType );
+        inputContainerElem.appendChild( newBox );
+      };
+
+      ns.removeBox = function( elemType ){
+		if( elemType === "out" ){
+			return false;
+		}
+        var lastBox, localCurBoxes = ns[ elemType + "putBoxes" ];
+        if( localCurBoxes.length ){
+          lastBox = localCurBoxes[ localCurBoxes.length - 1 ];
+          localCurBoxes.pop();
+          ns.decrementBoxCount( elemType );
+          lastBox.parentNode.removeChild( lastBox );
+        }
+      };
+
+      //go to a specific number of boxen
+      ns.jumpToBoxCount = function( numBoxes, elemType ){
+        var diff, diffSign, diffAbs, pinb = parseInt( numBoxes );
+        if( isNumeric( pinb ) ){
+          diff = pinb - ns[ elemType + "putboxCount" ],
+            diffSign = Math.sign( diff ),
+            diffAbs = Math.abs( diff );
+          //ns[ elemType + "putboxCount" ] = pinb;
+          for( var i = 0; i < diffAbs; i++ ){
+            if( diffSign === -1 ){
+              ns.removeBox( elemType );
+            } else if ( diffSign === 1 ) {
+              ns.addBox( elemType );
+            }
+          }
+        }
+      };
+
+      //handle parsing of value and calling of jumpToBoxCount as xWay changes
+      ns.setXWay = function( elemType ){
+        var xWayVal = parseInt( document.getElementById( "xWay" + elemType ).value );
+        if( xWayVal ){
+          ns.jumpToBoxCount( xWayVal, elemType );
+        } else {
+          //blarghh
+        } 
+      };
+
+      ns.removeAllBoxes = function( elemType ){
+        var numBoxes = ns[ elemType + "putBoxes" ].length;
+        for( var i = 0; i < numBoxes; i++ ){
+          ns.removeBox( elemType );
+					if( elemType === "in" ){										
+						ns.addBox('in');
+						ns.addBox('in');
+					} else if ( elemType === "out" ){
+						ns.addBox('out');
+					}
+        }
+      };
+      //todo: 
+      //    add buttons for boxes to:
+      //      delete
+      //      move left or right
+      //      insert b/w
+      //    optionally cache value of box at position
+      //    option to slice x-ways versus deinterlace x-ways
+    })();
+	setTimeout( function(){
+		ns.addBox('in');
+		ns.addBox('in');
+		ns.addBox('out');
+	}, 0 );
+  </script>
+</html>
